@@ -2,7 +2,21 @@ import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
 
-mixin RxBloc {
+class BlocStream<T> extends Stream {
+  Subject<T> _subject;
+  final RxBloc _altRxBloc;
+
+  BlocStream(this._altRxBloc, this._subject);
+
+  @override
+  StreamSubscription listen(void Function(T event) onData,
+      {Function onError, void Function() onDone, bool cancelOnError}) {
+    return _subject.listen(onData,
+        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+  }
+}
+
+class RxBloc {
   final List<Subject> _subjects = [];
 
   _addSubject(Subject subject) {
@@ -14,38 +28,21 @@ mixin RxBloc {
         .where((subject) => subject != null && !subject.isClosed)
         .map((subject) => subject.close()));
   }
-}
 
-class BlocStream<T> extends Stream {
-  final Subject<T> _subject;
-  final RxBloc rxBloc;
-  final Type streamType;
-
-  BlocStream(this.rxBloc) {
-
-
-    rxBloc._addSubject(_subject);
+  BlocStream<T> behaviour<T>() {
+    final BehaviorSubject<T> behaviorSubject = BehaviorSubject<T>();
+    this._addSubject(behaviorSubject);
+    return BlocStream<T>(this, behaviorSubject);
   }
-
-  @override
-  StreamSubscription listen(void Function(T event) onData,
-      {Function onError, void Function() onDone, bool cancelOnError}) {
-    return _subject.listen(onData,
-        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
-  }
-}
-
-class RxUpdater {
-  final RxBloc rxBloc;
-
-  RxUpdater(this.rxBloc) : assert(rxBloc != null);
 
   Subject<T> update<T>(BlocStream<T> blocStream) {
+    if (this != blocStream._altRxBloc) {
+      throw Exception("Trying to access stream from a different RxBloc!");
+    }
     return blocStream._subject;
   }
 
   Subject<T> call<T>(BlocStream<T> blocStream) {
-    print(identical(this.rxBloc, blocStream.rxBloc));
     return update<T>(blocStream);
   }
 }

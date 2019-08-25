@@ -9,34 +9,27 @@ void main() {
       .onDone(() {
     print("Stream closed");
   });
+  RxBloc rxBloc = new RxBloc();
+  rxBloc.update(sampleBloc.sampleStream).add(123);
   sampleBloc.work();
   sampleBloc.dispose();
 }
 
-class SampleBloc with RxBloc {
-  RxUpdater _updater;
+class SampleBloc {
+  RxBloc _rxBloc = RxBloc();
   BlocStream<int> sampleStream;
   BlocStream<String> stringStream;
 
   SampleBloc() {
-    _updater = RxUpdater(this);
-    sampleStream = BlocStream(this);
-    stringStream = BlocStream(this);
+    sampleStream = _rxBloc.behaviour<int>();
+    stringStream = _rxBloc.behaviour<String>();
   }
 
   void work() {
-    _updater(sampleStream).add(31);
-    _updater(sampleStream).add(32);
-    _updater(sampleStream).add(33);
-    _updater(sampleStream).add(33);
-    _updater(sampleStream).close();
-    _updater(stringStream).add('ok');
-    _updater(stringStream);
+    _rxBloc.update(sampleStream).add(123);
   }
 
   void dispose() {
-    this.close().then((_) {
-      print("All stream closed");
-    });
+    _rxBloc.close();
   }
 }
